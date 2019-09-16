@@ -19,7 +19,9 @@ directional_grey = list()
 training = list()
 
 IMG_PATH = '/res/'
+TRAIN_VAR_PATH = '/res/training/'
 TRAIN_PATH = '/res/training/original'
+
 NUMBERS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'LeftArrow', 'RightArrow']
 
 def init():
@@ -54,5 +56,11 @@ def init():
                     if file.startswith(nn):
                         training[i].append(file)
                         break
+
+    path = os.getcwd() + TRAIN_VAR_PATH
+    all_files = listdir(path)
+    for file in all_files:
+        print(file)
+
 
     print("[Image Loader] Loaded", len(building), "building signs and", len(directional), "directional signs")
