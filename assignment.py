@@ -8,9 +8,6 @@ import imageloader as il
 import numpy as np
 il.init()
 
-def normalise(A):
-    return (A - A.min() / (A.max() - A.min()))
-
 # Take each of the building signs and extract ONE region and associated number
 def task2():
     mser = cv2.MSER_create(20, 200)
@@ -27,15 +24,29 @@ def task2():
 
         features, boxes = mser.detectRegions(gaus)
 
+        rgb = img.copy()
+
         for feat in boxes:
-            cv2.rectangle(img, (feat[0], feat[1]), (feat[0] + feat[2], feat[1] + feat[3]), (0, 255, 0),
-                          thickness=2)
-        cv2.imshow("Img" + str(i), img)
+            roi = local[feat[1]:feat[1] + feat[3], feat[0]:feat[0] + feat[2]]
+            if roi.shape[0] / roi.shape[1] > 2.0:
+                roi = cv2.copyMakeBorder(roi, 0, 0, int(roi.shape[1] / 4), int(roi.shape[1] / 4), cv2.BORDER_REPLICATE)
+            claass, dist = il.classify(roi.astype('float32'))
+            print('distance', np.sum(dist))
+            if (np.sum(dist) < 100000000):
+                cv2.rectangle(rgb, (feat[0], feat[1]), (feat[0] + feat[2], feat[1] + feat[3]), (0, 255, 0), thickness=2)
+                cv2.putText(rgb, str(claass), (feat[0], feat[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, thickness=2,
+                            color=(120, 255, 0))
+
+        #for feat in boxes:
+        #    cv2.rectangle(img, (feat[0], feat[1]), (feat[0] + feat[2], feat[1] + feat[3]), (0, 255, 0),
+         #                 thickness=2)
+
+        cv2.imshow("Img" + str(i), rgb)
         cv2.waitKey(0)
 
-def task1():
+def task1(index):
     # start by using the first image
-    local = il.building_grey[0]
+    local = il.building_grey[index]
     cv2.imshow("Grey", local)
     # cv2.waitKey(0)
 
@@ -45,30 +56,42 @@ def task1():
     bina = np.zeros_like(local)
     cv2.threshold(media, 150, 255, cv2.THRESH_BINARY, bina)
 
-    bina = cv2.medianBlur(bina, 7)
-    # bina = cv2.erode(bina, (9, 9))
+    #bina = cv2.medianBlur(bina, 5)
+     # bina = cv2.erode(bina, (9, 9))
 
    # orig = np.zeros_like(local)
    # cv2.threshold(media, 160, 255, cv2.THRESH_OTSU, orig)
 
-   # output = normalise(np.float64(orig - orig ^ bina))
+   #output = normalise(np.float64(orig - orig ^ bina))
 
-    mser = cv2.MSER_create(20, 200)
+    mser = cv2.MSER_create(120, 200)
     features, boxes = mser.detectRegions(bina)
 
-    print(features)
+    # print(features)
+
+    rgb = il.building[index].copy()
 
     for feat in boxes:
-        cv2.rectangle(il.building[0], (feat[0], feat[1]), (feat[0]+feat[2], feat[1]+feat[3]), (0,255,0), thickness=1)
+        roi = il.building_grey[index][feat[1]:feat[1]+feat[3], feat[0]:feat[0]+feat[2]]
+        if roi.shape[0]/roi.shape[1] > 2.0:
+            roi = cv2.copyMakeBorder(roi, 0, 0, int(roi.shape[1] / 4), int(roi.shape[1] / 4), cv2.BORDER_REPLICATE)
+        claass, dist = il.classify(roi.astype('float32'))
+        print('distance', np.sum(dist))
+        if (np.sum(dist) < 80000000):
+            cv2.rectangle(rgb, (feat[0], feat[1]), (feat[0] + feat[2], feat[1] + feat[3]), (0, 255, 0), thickness=2)
+            cv2.putText(rgb, str(claass), (feat[0], feat[1]-5), cv2.FONT_HERSHEY_SIMPLEX, 1, thickness=2, color=(120, 255, 0))
 
     cv2.imshow("binary", bina)
     # cv2.imshow("otsu", orig)
-    cv2.imshow("outpit", il.building[0])
+    cv2.imshow("outpit", rgb)
     # cv2.imshow("subtract", output)
  ##
     cv2.waitKey(0)
 
-task2()
+
+#task2();
+for i in range(len(il.building_grey)):
+    task1(i)
 
 
 
