@@ -22,6 +22,8 @@ training_aug = list()
 
 kNN = cv2.ml.KNearest_create()
 
+aNN = cv2.ml.ANN_MLP_create()
+
 IMG_PATH = '/res/'
 TRAIN_VAR_PATH = '/res/training/augmented'
 TRAIN_PATH = '/res/training/original'
@@ -79,14 +81,44 @@ def init():
     # Classifier
     set, lab = training_set()
 
+    labels = np.zeros((set.shape[0], 12), dtype=np.float32)
+    for i, labl in enumerate(lab):
+        labels[i][int(labl)] = 1.0
+
+    #aNN.load("aNN1.dat")
+    aNN.setLayerSizes(np.array([28*40, 100, 25, 12], dtype=np.uint16))
+    aNN.setTrainMethod(cv2.ml.ANN_MLP_BACKPROP)
+    aNN.setActivationFunction(cv2.ml.ANN_MLP_SIGMOID_SYM)
+    aNN.train(set, cv2.ml.ROW_SAMPLE, labels)
+    aNN.save("aNN1.dat")
+
+
     # Initiate kNN, train the data, then test it with test data for k=1
     kNN.train(set, cv2.ml.ROW_SAMPLE, lab)
+    kNN.save("knn1.dat")
 
     test, test_lab = test_set()
     _, result, _, _ = kNN.findNearest(test, k=5)
     result = result.reshape(1200)
     print(result.shape, test.shape, test_lab.shape)
     print('kNN classifier for augmented numbers', accuracy(test_lab, result))
+
+    labels_test = np.zeros((set.shape[0], 12), dtype=np.float32)
+    for i, labl in enumerate(test_lab):
+        labels_test[i][int(labl)] = 1.0
+
+    o, res = aNN.predict(test)
+
+    crect = 0
+    for i, r in enumerate(res):
+        mm = np.argmax(r)
+        if mm == int(test_lab[i]):
+            crect += 1
+        else:
+            print('expect', int(test_lab[i]), 'got', mm)
+
+    print(crect / len(test))
+
 
    # cv2.imshow('test1 is a ' + str(classify(test[340].reshape(40, 28))), test[340].reshape(40, 28))
     #cv2.waitKey(0)
@@ -101,6 +133,20 @@ def deskew(img):
     M = np.float32([[1, skew, -0.5*SZ*skew], [0, 1, 0]])
     img = cv2.warpAffine(img,M,(28, 40),flags=affine_flags)
     return img
+
+def classifyANN(img):
+    cv2.imshow('begin', img.astype('uint8'))
+    img_resize = cv2.resize(img, (22, 34), interpolation=cv2.INTER_NEAREST)
+    img_resize = cv2.copyMakeBorder(img_resize, 3, 3, 3, 3, cv2.BORDER_CONSTANT)
+    _, img_resize = cv2.threshold(img_resize, 120, 255, cv2.THRESH_BINARY)
+    img_resize = deskew(img_resize)
+    cv2.imshow('resize', img_resize.astype('uint8'))
+    cv2.waitKey(1)
+    print(img_resize.shape)
+    vect = np.array(img_resize.reshape(1, 40 * 28))
+    print(vect)
+    _, result = aNN.predict(vect)
+    return int(np.argmax(result[0]))
 
 def classify(img):
     cv2.imshow('begin', img.astype('uint8'))

@@ -81,6 +81,7 @@ def task1(index):
             cv2.rectangle(rgb, (feat[0], feat[1]), (feat[0] + feat[2], feat[1] + feat[3]), (0, 255, 0), thickness=2)
             cv2.putText(rgb, str(claass), (feat[0], feat[1]-5), cv2.FONT_HERSHEY_SIMPLEX, 1, thickness=2, color=(120, 255, 0))
 
+
     cv2.imshow("binary", bina)
     # cv2.imshow("otsu", orig)
     cv2.imshow("outpit", rgb)
