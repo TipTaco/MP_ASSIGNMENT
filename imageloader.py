@@ -24,7 +24,9 @@ kNN = cv2.ml.KNearest_create()
 svm = cv2.ml.SVM_create()
 aNN = cv2.ml.ANN_MLP_create()
 
-FEATURES = 13
+hog_des = None
+
+FEATURES = 12
 
 IMG_PATH = '/res/'
 TRAIN_VAR_PATH = '/res/training/augmented'
@@ -78,20 +80,48 @@ def init():
                             training_aug[i].append(img[:40, :28])
                             break
 
-    for i in range(200):
-        new_img = np.random.randint(256, size=(40, 28), dtype=np.uint8)
-        training_aug[12].append(new_img)
+    #for i in range(200):
+    #    new_img = np.random.randint(256, size=(40, 28), dtype=np.uint8)
+    #    training_aug[12].append(new_img)
         #cv2.imshow('new_img', new_img)
         #cv2.imwrite('res/training/noise/noise.' + str(i) + '.jpg', new_img)
 
     print("[Image Loader] Loaded", len(building), "building signs and", len(directional), "directional signs")
 
-    # Classifier
-    set, lab = training_set()
+    winSize = (28, 40)
+    blockSize = (14, 20)
+    blockStride = (7, 10)
+    cellSize = (7, 10)
+    nbins = 9
+    derivAperture = 1
+    winSigma = 4.
+    histogramNormType = 0
+    L2HysThreshold = 2.0000000000000001e-01
+    gammaCorrection = 0
+    nlevels = 64
+    global hog_des
+    hog_des = cv2.HOGDescriptor(winSize, blockSize, blockStride, cellSize, nbins) #, derivAperture, winSigma,
+                           # histogramNormType, L2HysThreshold, gammaCorrection, nlevels)
 
-    labels = np.zeros((set.shape[0], FEATURES), dtype=np.float32)
-    for i, labl in enumerate(lab):
-        labels[i][int(labl)] = 1.0
+
+    # Clean classifier KNN
+    setH, label = training_hog()
+    kNN.train(setH, cv2.ml.ROW_SAMPLE, label)
+    kNN.save("knn1.dat")
+
+    # test it
+    test, test_lab = test_hog()
+    _, result, _, _ = kNN.findNearest(test, k=5)
+    result = result.reshape(FEATURES * 100)
+    print(result.shape, test.shape, test_lab.shape)
+    print('kNN classifier for augmented numbers', accuracy(test_lab, result))
+
+    # Classifier
+
+
+   # labels = np.zeros((set.shape[0], FEATURES), dtype=np.float32)
+   # for i, labl in enumerate(lab):
+    #    labels[i][int(labl)] = 1.0
 
     #aNN.load("aNN1.dat")
     #aNN.setLayerSizes(np.array([28*40, 100, 25, 12], dtype=np.uint16))
@@ -102,41 +132,40 @@ def init():
 
 
     # Initiate kNN, train the data, then test it with test data for k=1
-    kNN.train(set, cv2.ml.ROW_SAMPLE, lab)
-    kNN.save("knn1.dat")
 
-    test, test_lab = test_set()
-    _, result, _, _ = kNN.findNearest(test, k=5)
-    result = result.reshape(FEATURES * 100)
-    print(result.shape, test.shape, test_lab.shape)
-    print('kNN classifier for augmented numbers', accuracy(test_lab, result))
 
-    labels_test = np.zeros((set.shape[0], FEATURES), dtype=np.float32)
-    for i, labl in enumerate(test_lab):
-        labels_test[i][int(labl)] = 1.0
+    #test, test_lab = test_set()
+    #_, result, _, _ = kNN.findNearest(test, k=5)
+    #result = result.reshape(FEATURES * 100)
+    #print(result.shape, test.shape, test_lab.shape)
+    #print('kNN classifier for augmented numbers', accuracy(test_lab, result))
+
+    #labels_test = np.zeros((set.shape[0], FEATURES), dtype=np.float32)
+   # for i, labl in enumerate(test_lab):
+     #   labels_test[i][int(labl)] = 1.0
 
     ## hog test with SVM
-    hogdata, hoglab = training_hog()
+    #hogdata, hoglab = training_hog()
 
-    svm.setType(cv2.ml.SVM_C_SVC)
-    svm.setC(2.67)
-    svm.setGamma(5.383)
-    svm.setKernel(cv2.ml.SVM_DEGREE)
+    #svm.setType(cv2.ml.SVM_C_SVC)
+    #svm.setC(2.67)
+    #svm.setGamma(5.383)
+    #svm.setKernel(cv2.ml.SVM_DEGREE)
 
-    svm.train(hogdata, cv2.ml.ROW_SAMPLE, hoglab)
-    svm.save('svm_data.dat')
+    #svm.train(hogdata, cv2.ml.ROW_SAMPLE, hoglab)
+    #svm.save('svm_data.dat')
 
-    testhog, testhoglab = test_hog()
-    print(testhog.shape)
+    #testhog, testhoglab = test_hog()
+    #print(testhog.shape)
 
-    _, result = svm.predict(testhog)
-    result = result.reshape(1300)
-    print('SVM classifier for augmented numbers', accuracy(testhoglab, result))
+    #_, result = svm.predict(testhog)
+    #result = result.reshape(1300)
+    #print('SVM classifier for augmented numbers', accuracy(testhoglab, result))
 
     #hh = np.float32(hog(training_aug[12][0])).reshape(-1, 64)
-    hh, _= classifySVM(training_aug[12][0])
-    cv2.imshow('random', training_aug[12][0])
-    print('static is', hh)
+    #hh, _= classifySVM(training_aug[12][0])
+    #cv2.imshow('random', training_aug[12][0])
+    #print('static is', hh)
 
     #o, res = aNN.predict(test)
 
@@ -153,21 +182,7 @@ def init():
     #cv2.waitKey(0)
 
 def hog2(img):
-    winSize = (img.shape[1] , 40)
-    blockSize = (2, 2)
-    blockStride = (8, 8)
-    cellSize = (8, 8)
-    nbins = 9
-    derivAperture = 1
-    winSigma = 4.
-    histogramNormType = 0
-    L2HysThreshold = 2.0000000000000001e-01
-    gammaCorrection = 0
-    nlevels = 64
-    hog_des = cv2.HOGDescriptor(winSize, blockSize, blockStride, cellSize, nbins, derivAperture, winSigma,
-                            histogramNormType, L2HysThreshold, gammaCorrection, nlevels)
-
-    h = hog_des.compute(img, winStride=(8, 8), padding=None, locations=((10,20),))
+    h = hog_des.compute(img)
     return h
 
 def hog(img):
@@ -223,33 +238,36 @@ def classifyANN(img):
     return int(np.argmax(result[0]))
 
 def classify(img):
-    cv2.imshow('begin', img.astype('uint8'))
+    #cv2.imshow('begin', img.astype('uint8'))
     img_resize = cv2.resize(img, (22, 34), interpolation=cv2.INTER_NEAREST)
     img_resize = cv2.copyMakeBorder(img_resize, 3, 3, 3, 3, cv2.BORDER_CONSTANT)
-    _, img_resize = cv2.threshold(img_resize, 120, 255, cv2.THRESH_BINARY)
-    img_resize = deskew(img_resize)
-    cv2.imshow('resize', img_resize.astype('uint8'))
-    cv2.waitKey(1)
+    #_, img_resize = cv2.threshold(img_resize, 120, 255, cv2.THRESH_BINARY)
+    #img_resize = deskew(img_resize)
+    img_resize = img_resize.astype('uint8')
+    #cv2.imshow('resize', img_resize)
+    #print(img_resize)
+    #cv2.waitKey(1)
     #print(img_resize.shape)
-    vect = np.array(img_resize.reshape(1, 40 * 28))
+    vect = hog2(img_resize).reshape(1, 324) # np.array(img_resize.reshape(1, 40 * 28))
+    #print(vect.shape)
     #print(vect)
     _, result, _, dist = kNN.findNearest(vect, k=5)
     return int(result[0][0]), dist
 
 def test_set():
-    return subset(100, 13, 100)
+    return subset(100, 12, 100)
 
 def training_set():
-    return subset(0, 13, 100)
+    return subset(0, 12, 100)
 
 def training_hog():
-    return subset_hog(0, 13, 100)
+    return subset_hog(0, 12, 100)
 
 def test_hog():
-    return subset_hog(100, 13, 100)
+    return subset_hog(100, 12, 100)
 
 def subset_hog(low, digits, samples=100):
-    set = np.zeros((samples * digits, 64), dtype=np.float32)
+    set = np.zeros((samples * digits, 324), dtype=np.float32)
     set_labels = np.zeros((samples * digits), dtype=int)
 
     matrixAug = np.array(training_aug)
@@ -257,10 +275,10 @@ def subset_hog(low, digits, samples=100):
 
     for i in range(digits):
         for j in range(samples):
-            _, im = cv2.threshold(matrixAug[i][low + j], 120, 255, cv2.THRESH_BINARY)
-
-            hh = hog(im)
-            set[i * samples + j] = hh.reshape(64)
+            #_, im = cv2.threshold(matrixAug[i][low + j], 120, 255, cv2.THRESH_BINARY)
+            im = matrixAug[i][low + j]
+            hh = hog2(im)
+            set[i * samples + j] = hh.reshape(324)
             set_labels[i * samples + j] = int(i)
 
     return set, set_labels
