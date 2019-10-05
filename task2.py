@@ -27,7 +27,7 @@ def simi(roi1, roi2):
 
 def thresh_sweep(arr, step, inclusion):
     range = int(arr.shape[0] * inclusion)
-    print(inclusion)
+    #print(inclusion)
     arr2 = arr.copy()
 
     for thresh in np.arange(0.0, 1.0, step):
@@ -127,7 +127,6 @@ def task2(img, name=None):
     final_pts = np.float32([[0,0], [new_width-1, 0], [new_width-1, new_height-1], [0, new_height - 1]])
 
     M = cv2.getPerspectiveTransform(initial_pts, final_pts)
-    print(new_height, new_width)
     warped = cv2.warpPerspective(roi, M, (new_width, new_height))
     cv2.imshow('warped', warped)
     #cv2.waitKey(0)
@@ -156,6 +155,7 @@ def task2(img, name=None):
                     cv2.rectangle(warped_rgb, (x, y), (x+w, y+h), (255, 0, 0), thickness=1)
 
     cv2.imshow('warped rgn', warped_rgb)
+    regions2.sort(key=order_y)
     #cv2.waitKey(0)
 
     # Classify each of the extracted regions, will be 3 digits then a direction
@@ -170,18 +170,11 @@ def task2(img, name=None):
         num3 = digits[:, int(2.2*w): int(3.3 * w)]
         arrow = digits[:, int(3.5*w): int(4.6 * w)]
 
-       # num1 = cv2.adaptiveThreshold(num1, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 1)
-        #num1 = cv2.morphologyEx(num1, cv2.MORPH_ERODE, np.ones((2,2)))
-
-        #num1 = cv2.threshold(num1, 120, 255, cv2.THRESH_OTSU)[1]
-        #num2 = cv2.threshold(num2, 120, 255, cv2.THRESH_OTSU)[1]
-        #num3 = cv2.threshold(num3, 120, 255, cv2.THRESH_OTSU)[1]
-        #arrow = cv2.threshold(arrow, 120, 255, cv2.THRESH_OTSU)[1]
-
         #num2 = cv2.copyMakeBorder(num2, 0, 0, 3, 3, cv2.BORDER_CONSTANT)
         #num3 = cv2.copyMakeBorder(num3, 0, 0, 3, 3, cv2.BORDER_CONSTANT)
        # arrow = cv2.copyMakeBorder(arrow, 0, 0, 3, 3, cv2.BORDER_CONSTANT)
 
+        #num1 = crop_height(num1)
         num2 = crop_height(num2)
         num3 = crop_height(num3)
         arrow = crop_height(arrow)
@@ -202,14 +195,15 @@ def task2(img, name=None):
         elif dir == 11:
             output += "R"
 
-        print(output)
+        # print(output)
         numbers_on_sign.append(output)
 
         cv2.imshow('region', digits)
-        cv2.waitKey(0)
+        #cv2.waitKey(0)
 
     cv2.imshow('rect', roi_rgb)
     cv2.imshow('roi thresh', roi_thresh)
+
     return np.array(numbers_on_sign)
 
 

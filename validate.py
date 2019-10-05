@@ -31,12 +31,16 @@ def main():
     for ds in datastore["Directional"]:
         img = cv2.imread('res/' + ds + ".jpg")
         classify = task2.task2(img, ds)
+        ans = datastore["Directional"][ds]
 
-        if classify == datastore["Directional"][ds]:
+        if len(classify) == len(ans):
+            for i, cla in enumerate(classify):
+                if cla != ans[i]:
+                    break
             correct = correct + 1
             print("Correct for", ds, ". Got", classify)
         else:
-            print("FAIL for", ds, ". Got", classify, 'expected', datastore["Directional"][ds])
+            print("FAIL for", ds, ". Got", classify, 'expected', ans)
             cv2.waitKey(0)
 
 
