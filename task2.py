@@ -17,14 +17,6 @@ def order_y(element):
     return element[1]
 
 
-def simi(roi1, roi2):
-    Y_THRESH = 20
-    AREA_THRESH = 1.5
-    HEIGHT_THRESH = 1.2
-    return (abs(roi1[3] - roi2[3]) <= Y_THRESH) and (abs(roi1[6] - roi2[6]) <= max(roi1[6], roi2[6]) *
-            AREA_THRESH) and (abs(roi1[5] - roi2[5]) <= max(roi1[5], roi2[5]) * HEIGHT_THRESH) and (roi1 != roi2)
-
-
 def thresh_sweep(arr, step, inclusion):
     range = int(arr.shape[0] * inclusion)
     #print(inclusion)
@@ -58,7 +50,7 @@ def crop_height(img):
             maxi = img.shape[0] - (i - 1)
             break
 
-    return img[mini:maxi, :]
+    return img[max(0,mini-1):min(img.shape[0], maxi+1), :]
 
 
 # Take an image of a directional sign and get the numbers
@@ -72,7 +64,7 @@ def task2(img, name=None):
     sobX, sobY = cv2.spatialGradient(grey, None, None, 3)
     sob = np.square(sobX) + np.square(sobY)
 
-    cv2.imshow('grey', sob)
+    #cv2.imshow('grey', sob)
     col_sum = np.sum(sob, axis=0)
     col_sum = col_sum / col_sum.max()
     minX, maxX = thresh_sweep(col_sum, 0.001, 0.25)
@@ -85,23 +77,23 @@ def task2(img, name=None):
     cv2.imshow('roi', roi)
 
     # Get contours
-    roi_thresh = cv2.adaptiveThreshold(roi, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 1) # cv2.threshold(roi, 120, 255, cv2.THRESH_OTSU)[1]
+    roi_thresh = cv2.adaptiveThreshold(roi, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 25, 1) # cv2.threshold(roi, 120, 255, cv2.THRESH_OTSU)[1]
     im2, conts, heir = cv2.findContours(roi_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     regions = list()
 
     for i in conts:
         x, y, w, h = cv2.boundingRect(i)
-        if 80 < w * h < 5000:
-            if 0.8 * w < h < 1.2 * w:
+        if 40 < w * h < 5000:
+            if 0.7 * w < h < 1.3 * w:
                 feature = roi[y: y + h, x: x + w]
                 classify, dist = cl.classify(feature)
                 if np.sum(dist) < 15 and (int(classify) == 10 or int(classify) == 11):
                     cv2.rectangle(roi_rgb, (x, y), (x+w, y+h), (0, 255, 255), thickness=2)
                     rx = x - int(3.9 * w)
-                    ry = y - int(0.4 * h)
+                    ry = y - int(0.6 * h)
                     rw = int(4.9 * w)
-                    rh = int(1.8 * h)
+                    rh = int(2.2 * h)
                     regions.append([rx, ry, rw, rh, x, y, w, h])
                     cv2.rectangle(roi_rgb, (rx, ry), (rx + rw, ry + rh), (0, 255, 0), thickness=1)
                 else:
@@ -128,7 +120,7 @@ def task2(img, name=None):
 
     M = cv2.getPerspectiveTransform(initial_pts, final_pts)
     warped = cv2.warpPerspective(roi, M, (new_width, new_height))
-    cv2.imshow('warped', warped)
+    #cv2.imshow('warped', warped)
     #cv2.waitKey(0)
 
     warped_thresh = cv2.adaptiveThreshold(warped, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 1)
@@ -145,10 +137,10 @@ def task2(img, name=None):
                 classify, dist = cl.classify(feature)
                 if np.sum(dist) < 15 and (int(classify) == 10 or int(classify) == 11):
                     cv2.rectangle(warped_rgb, (x, y), (x+w, y+h), (0, 255, 255), thickness=2)
-                    rx = x - int(3.6 * w)
-                    ry = max(0, y - int(0.45 * h))
-                    rw = int(4.6 * w)
-                    rh = int(1.8 * h)
+                    rx = 0 # x - int(3.6 * w)
+                    ry = max(0, y - int(.6 * h))
+                    rw = warped.shape[1] # int(4.7 * w)
+                    rh = int(2.2 * h)
                     regions2.append([rx, ry, rw, rh, x, y, w, h])
                     cv2.rectangle(warped_rgb, (rx, ry), (rx + rw, ry + rh), (0, 255, 0), thickness=1)
                 else:
@@ -165,10 +157,10 @@ def task2(img, name=None):
 
         digits = cv2.threshold(digits, 100, 255, cv2.THRESH_OTSU)[1]
 
-        num1 = digits[:, int(0.1*w): int(1.0 * w)]
-        num2 = digits[:, int(1.1*w): int(2.1 * w)]
-        num3 = digits[:, int(2.2*w): int(3.3 * w)]
-        arrow = digits[:, int(3.5*w): int(4.6 * w)]
+        num1 = digits[:, int(0.35*w): int(1.3 * w)]
+        num2 = digits[:, int(1.3*w): int(2.4 * w)]
+        num3 = digits[:, int(2.4*w): int(3.5 * w)]
+        arrow = digits[:, int(3.9*w): int(5.0 * w)]
 
         #num2 = cv2.copyMakeBorder(num2, 0, 0, 3, 3, cv2.BORDER_CONSTANT)
         #num3 = cv2.copyMakeBorder(num3, 0, 0, 3, 3, cv2.BORDER_CONSTANT)
@@ -198,11 +190,11 @@ def task2(img, name=None):
         # print(output)
         numbers_on_sign.append(output)
 
-        cv2.imshow('region', digits)
+        #cv2.imshow('region', digits)
         #cv2.waitKey(0)
 
-    cv2.imshow('rect', roi_rgb)
-    cv2.imshow('roi thresh', roi_thresh)
+    #cv2.imshow('rect', roi_rgb)
+    #cv2.imshow('roi thresh', roi_thresh)
 
     return np.array(numbers_on_sign)
 

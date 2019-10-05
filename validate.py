@@ -14,8 +14,8 @@ def main():
             datastore = json.load(f)
 
 
-    correct = 0
-    tried = len(datastore["Building"])
+    ncorrect = 0
+    tried = len(datastore["Directional"])
 
     """for bs in datastore["Building"]:
         img = cv2.imread('res/' + bs + ".jpg")
@@ -33,18 +33,26 @@ def main():
         classify = task2.task2(img, ds)
         ans = datastore["Directional"][ds]
 
+        correct = True
+
+
         if len(classify) == len(ans):
             for i, cla in enumerate(classify):
                 if cla != ans[i]:
+                    correct = False
                     break
-            correct = correct + 1
+        else:
+            correct = False
+
+        if correct:
+            ncorrect = ncorrect + 1
             print("Correct for", ds, ". Got", classify)
         else:
             print("FAIL for", ds, ". Got", classify, 'expected', ans)
             cv2.waitKey(0)
 
 
-    print('OVERALL', round(100.0 * correct/tried, 2), "% correct")
+    print('OVERALL', round(100.0 * ncorrect/tried, 2), "% correct")
 
 
 if __name__ == "__main__":
