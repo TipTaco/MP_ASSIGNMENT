@@ -91,4 +91,6 @@ def task1(img, name=None):
         cv2.rectangle(im3, (el[2], el[3]), (el[2] + el[4], el[3] + el[5]), (0, 255, 0), 2)
         cv2.putText(im3, str(el[0]), (el[2], el[3] - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, (120, 255, 0), 2)
 
-    return numbers(features)
+    img_cropped = img[features[0][3] : features[2][3] + features[2][5], features[0][2] : features[2][2] + features[2][4]]
+
+    return numbers(features), img_cropped

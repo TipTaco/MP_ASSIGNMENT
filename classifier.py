@@ -33,7 +33,7 @@ HOG_FEATURES = 324
 # kNN Model parameters
 NUMBERS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'LeftArrow', 'RightArrow']
 FEATURES = 12
-TRAIN_FEATURES = 100
+TRAIN_FEATURES = 250
 TEST_FEATURES = 100
 K = 5
 

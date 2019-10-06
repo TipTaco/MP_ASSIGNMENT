@@ -15,20 +15,20 @@ def main():
 
 
     ncorrect = 0
-    tried = len(datastore["Directional"])
+    tried = len(datastore["Building"])
 
-    """for bs in datastore["Building"]:
+    for bs in datastore["Building"]:
         img = cv2.imread('res/' + bs + ".jpg")
         classify = task1.task1(img, bs)
 
         if classify == datastore["Building"][bs]:
-            correct = correct + 1
+            ncorrect = ncorrect + 1
             print("Correct for", bs, ". Got", classify)
         else:
             print("FAIL for", bs, ". Got", classify, 'expected', datastore["Building"][bs])
-            #cv2.waitKey(0)"""
+            #cv2.waitKey(0)
 
-    for ds in datastore["Directional"]:
+    """for ds in datastore["Directional"]:
         img = cv2.imread('res/' + ds + ".jpg")
         classify = task2.task2(img, ds)
         ans = datastore["Directional"][ds]
@@ -49,7 +49,7 @@ def main():
             print("Correct for", ds, ". Got", classify)
         else:
             print("FAIL for", ds, ". Got", classify, 'expected', ans)
-            cv2.waitKey(0)
+            cv2.waitKey(0)"""
 
 
     print('OVERALL', round(100.0 * ncorrect/tried, 2), "% correct")
