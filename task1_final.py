@@ -33,14 +33,24 @@ def simi(roi1, roi2):
             AREA_THRESH) and (abs(roi1[5] - roi2[5]) <= max(roi1[5], roi2[5]) * HEIGHT_THRESH) and (roi1 != roi2)
 
 
-def numbers(feat):
+def order_features(feat):
     nums = list()
     for i in range(3):
         nums.append(feat[i])
 
     nums.sort(key=roi_x)
+    return nums
+
+
+def numbers(feat):
+    nums = order_features(feat)
     return str(nums[0][0]) + str(nums[1][0]) + str(nums[2][0])
 
+
+def extracted_area(img, feat):
+    nums = order_features(feat)
+    img_cropped = img[nums[0][3]: nums[2][3] + nums[2][5], nums[0][2]: nums[2][2] + nums[2][4]]
+    return img_cropped
 
 def alignment_filter(rois):
     #resort list by size of Roi
@@ -91,6 +101,4 @@ def task1(img, name=None):
         cv2.rectangle(im3, (el[2], el[3]), (el[2] + el[4], el[3] + el[5]), (0, 255, 0), 2)
         cv2.putText(im3, str(el[0]), (el[2], el[3] - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, (120, 255, 0), 2)
 
-    img_cropped = img[features[0][3] : features[2][3] + features[2][5], features[0][2] : features[2][2] + features[2][4]]
-
-    return numbers(features), img_cropped
+    return numbers(features), extracted_area(img, features)

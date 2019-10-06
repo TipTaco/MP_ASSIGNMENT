@@ -12,13 +12,13 @@ import os
 from os import listdir
 
 TASK1_FILES = "/home/student/test/task1/"
-TASK1_OUTPUT = os.getcwd() + "output/task1/"
+TASK1_OUTPUT = os.getcwd() + "/output/task1/"
 
 
 def main():
     all_files = listdir(TASK1_FILES)
     for file in all_files:
-        if file.statswith("test") and file.endswith(".jpg"):
+        if file.startswith("test") and file.endswith(".jpg"):
             number = file[4:-4]
             img = cv2.imread(TASK1_FILES + file)
             if img is not None:
@@ -32,7 +32,7 @@ def main():
                 f.write("Building " + num + "\n")
                 f.close()
 
-        print("Compelete")
+    print("Compelete")
 
 
 if __name__ == "__main__":
