@@ -67,7 +67,7 @@ def task2(img, name=None):
     #cv2.imshow('grey', sob)
     col_sum = np.sum(sob, axis=0)
     col_sum = col_sum / col_sum.max()
-    minX, maxX = thresh_sweep(col_sum, 0.001, 0.25)
+    minX, maxX = thresh_sweep(col_sum, 0.001, 0.22)
 
     #plt.plot(np.arange(0, img.shape[1]), col_sum)
     #plt.show()
@@ -77,7 +77,7 @@ def task2(img, name=None):
     cv2.imshow('roi', roi)
 
     # Get contours
-    roi_thresh = cv2.adaptiveThreshold(roi, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 25, 1) # cv2.threshold(roi, 120, 255, cv2.THRESH_OTSU)[1]
+    roi_thresh = cv2.adaptiveThreshold(roi, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 1) # cv2.threshold(roi, 120, 255, cv2.THRESH_OTSU)[1]
     im2, conts, heir = cv2.findContours(roi_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     regions = list()
@@ -85,13 +85,13 @@ def task2(img, name=None):
     for i in conts:
         x, y, w, h = cv2.boundingRect(i)
         if 40 < w * h < 5000:
-            if 0.7 * w < h < 1.3 * w:
+            if 0.6 * w < h < 1.4 * w:
                 feature = roi[y: y + h, x: x + w]
                 classify, dist = cl.classify(feature)
-                if np.sum(dist) < 15 and (int(classify) == 10 or int(classify) == 11):
+                if np.sum(dist) < 3.0 * cl.FEATURES and (int(classify) == 10 or int(classify) == 11):
                     cv2.rectangle(roi_rgb, (x, y), (x+w, y+h), (0, 255, 255), thickness=2)
-                    rx = x - int(3.9 * w)
-                    ry = y - int(0.6 * h)
+                    rx = max(0, x - int(3.9 * w))
+                    ry = max(0, y - int(0.6 * h))
                     rw = int(4.9 * w)
                     rh = int(2.2 * h)
                     regions.append([rx, ry, rw, rh, x, y, w, h])
@@ -119,7 +119,7 @@ def task2(img, name=None):
     final_pts = np.float32([[0,0], [new_width-1, 0], [new_width-1, new_height-1], [0, new_height - 1]])
 
     M = cv2.getPerspectiveTransform(initial_pts, final_pts)
-    warped = cv2.warpPerspective(roi, M, (new_width, new_height))
+    warped = cv2.warpPerspective(roi, M, (new_width, new_height), flags=cv2.INTER_CUBIC)
     #cv2.imshow('warped', warped)
     #cv2.waitKey(0)
 
@@ -131,11 +131,11 @@ def task2(img, name=None):
 
     for i in conts:
         x, y, w, h = cv2.boundingRect(i)
-        if 80 < w * h < 5000:
-            if 0.8 * w < h < 1.2 * w:
+        if 40 < w * h < 5000:
+            if 0.7 * w < h < 1.3 * w:
                 feature = warped[y: y + h, x: x + w]
                 classify, dist = cl.classify(feature)
-                if np.sum(dist) < 15 and (int(classify) == 10 or int(classify) == 11):
+                if np.sum(dist) < 4.0 * cl.FEATURES and (int(classify) == 10 or int(classify) == 11):
                     cv2.rectangle(warped_rgb, (x, y), (x+w, y+h), (0, 255, 255), thickness=2)
                     rx = 0 # x - int(3.6 * w)
                     ry = max(0, y - int(.6 * h))
@@ -148,25 +148,27 @@ def task2(img, name=None):
 
     cv2.imshow('warped rgn', warped_rgb)
     regions2.sort(key=order_y)
-    #cv2.waitKey(0)
+    #cv2.waitKey(0)"""
 
     # Classify each of the extracted regions, will be 3 digits then a direction
     for region in regions2:
         rx, ry, rw, rh, x, y, w, h = region[:]
+
         digits = warped[ry:ry + rh, rx:rx+rw]
+        digits = cv2.threshold(digits, 120, 255, cv2.THRESH_OTSU)[1]
 
-        digits = cv2.threshold(digits, 100, 255, cv2.THRESH_OTSU)[1]
+        #digits = cv2.morphologyEx(digits, cv2.MORPH_OPEN, np.ones((2, 2)))
 
-        num1 = digits[:, int(0.35*w): int(1.3 * w)]
-        num2 = digits[:, int(1.3*w): int(2.4 * w)]
-        num3 = digits[:, int(2.4*w): int(3.5 * w)]
-        arrow = digits[:, int(3.9*w): int(5.0 * w)]
+        num1 = digits[:, int(0.3*w): int(1.4 * w)]
+        num2 = digits[:, int(1.2*w): int(2.5 * w)]
+        num3 = digits[:, int(2.3*w): int(3.7 * w)]
+        arrow = digits[:, int(3.8*w): int(5.1 * w)]
 
         #num2 = cv2.copyMakeBorder(num2, 0, 0, 3, 3, cv2.BORDER_CONSTANT)
         #num3 = cv2.copyMakeBorder(num3, 0, 0, 3, 3, cv2.BORDER_CONSTANT)
        # arrow = cv2.copyMakeBorder(arrow, 0, 0, 3, 3, cv2.BORDER_CONSTANT)
 
-        #num1 = crop_height(num1)
+        num1 = crop_height(num1)
         num2 = crop_height(num2)
         num3 = crop_height(num3)
         arrow = crop_height(arrow)

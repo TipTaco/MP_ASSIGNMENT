@@ -33,8 +33,8 @@ HOG_FEATURES = 324
 # kNN Model parameters
 NUMBERS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'LeftArrow', 'RightArrow']
 FEATURES = 12
-TRAIN_FEATURES = 250
-TEST_FEATURES = 100
+TRAIN_FEATURES = 490
+TEST_FEATURES = 5
 K = 5
 
 # HOG descriptor and kNN initial setup
@@ -97,11 +97,14 @@ def train():
 
 
 def classify(img):
-    border = 3
-    # Resize the image to (28, 40) with the content scaled to (22, 34) and a black border of 3
-    img_resize = cv2.resize(img, (FEAT_WIDTH - border * 2, FEAT_HEIGHT - border * 2), interpolation=cv2.INTER_NEAREST)
+    border = 2
+    method = cv2.INTER_AREA
+    if img.shape[0] < 40 or img.shape[1] < 28:
+        method = cv2.INTER_CUBIC
+
+    # Resize the image to (28, 40) with the content scaled to (22, 34) and a black border of 2
+    img_resize = cv2.resize(img, (FEAT_WIDTH - border * 2, FEAT_HEIGHT - border * 2), interpolation=method)
     img_resize = cv2.copyMakeBorder(img_resize, border, border, border, border, cv2.BORDER_CONSTANT)
-    # = img_resize.astype('uint8')
     vect = hog(img_resize).reshape(1, HOG_FEATURES)
     _, result, _, dist = kNN.findNearest(vect, k=K)
     return int(result[0][0]), dist
