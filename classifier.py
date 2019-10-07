@@ -97,17 +97,21 @@ def train():
 
 
 def classify(img):
-    border = 2
-    method = cv2.INTER_AREA
-    if img.shape[0] < 40 or img.shape[1] < 28:
-        method = cv2.INTER_CUBIC
+    if img.shape[0] > 0 and img.shape[1] > 0:
+        border = 2
+        method = cv2.INTER_AREA
+        if img.shape[0] < 40 or img.shape[1] < 28:
+            method = cv2.INTER_CUBIC
 
-    # Resize the image to (28, 40) with the content scaled to (22, 34) and a black border of 2
-    img_resize = cv2.resize(img, (FEAT_WIDTH - border * 2, FEAT_HEIGHT - border * 2), interpolation=method)
-    img_resize = cv2.copyMakeBorder(img_resize, border, border, border, border, cv2.BORDER_CONSTANT)
-    vect = hog(img_resize).reshape(1, HOG_FEATURES)
-    _, result, _, dist = kNN.findNearest(vect, k=K)
-    return int(result[0][0]), dist
+        # Resize the image to (28, 40) with the content scaled to (22, 34) and a black border of 2
+        img_resize = cv2.resize(img, (FEAT_WIDTH - border * 2, FEAT_HEIGHT - border * 2), interpolation=method)
+        img_resize = cv2.copyMakeBorder(img_resize, border, border, border, border, cv2.BORDER_CONSTANT)
+        vect = hog(img_resize).reshape(1, HOG_FEATURES)
+        _, result, _, dist = kNN.findNearest(vect, k=K)
+        return int(result[0][0]), dist
+    else:
+        # Size 0 image, will crash, return false classify code ie 13
+        return FEATURES + 1, 100
 
 
 def hog(img):
