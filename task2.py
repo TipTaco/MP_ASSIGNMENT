@@ -205,6 +205,8 @@ def task2(img, name=None):
     #cv2.imshow('warped', warped)
     #cv2.waitKey(0)
 
+    region_output = warped.copy()
+
     warped = cv2.resize(warped, (warped.shape[1] * 2, warped.shape[0] * 2), cv2.INTER_LINEAR)
     warped_thresh = cv2.adaptiveThreshold(warped, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 1)
     im2, conts, heir = cv2.findContours(warped_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -289,6 +291,6 @@ def task2(img, name=None):
     #cv2.imshow('rect', roi_rgb)
     #cv2.imshow('roi thresh', roi_thresh)
 
-    return np.array(numbers_on_sign)
+    return np.array(numbers_on_sign), region_output
 
 
