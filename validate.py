@@ -4,37 +4,35 @@ import cv2
 import task1_final as task1
 import task2
 
-def main():
-    #filepath
-    filename = 'res/Answers.json'
 
-    #Read JSON data into the datastore variable
-    if filename:
-        with open(filename, 'r') as f:
-            datastore = json.load(f)
-
-
+def validate1(datastore):
     ncorrect = 0
-    tried = len(datastore["Directional"])
+    tried = len(datastore["Building"])
 
-    """for bs in datastore["Building"]:
+    for bs in datastore["Building"]:
         img = cv2.imread('res/' + bs + ".jpg")
-        classify = task1.task1(img, bs)
+        classify, roi = task1.task1(img, bs)
 
         if classify == datastore["Building"][bs]:
             ncorrect = ncorrect + 1
             print("Correct for", bs, ". Got", classify)
         else:
             print("FAIL for", bs, ". Got", classify, 'expected', datastore["Building"][bs])
-            #cv2.waitKey(0)"""
+            #cv2.waitKey(0)
+
+    print('OVERALL', round(100.0 * ncorrect/tried, 2), "% correct\n")
+
+
+def validate2(datastore):
+    ncorrect = 0
+    tried = len(datastore["Directional"])
 
     for ds in datastore["Directional"]:
         img = cv2.imread('res/' + ds + ".jpg")
-        classify = task2.task2(img, ds)
+        classify, roi = task2.task2(img, ds)
         ans = datastore["Directional"][ds]
 
         correct = True
-
 
         if len(classify) == len(ans):
             for i, cla in enumerate(classify):
@@ -51,8 +49,20 @@ def main():
             print("FAIL for", ds, ". Got", classify, 'expected', ans)
             cv2.waitKey(0)
 
+    print('OVERALL', round(100.0 * ncorrect/tried, 2), "% correct\n")
 
-    print('OVERALL', round(100.0 * ncorrect/tried, 2), "% correct")
+
+def main():
+    #filepath
+    filename = 'res/Answers.json'
+
+    #Read JSON data into the datastore variable
+    if filename:
+        with open(filename, 'r') as f:
+            datastore = json.load(f)
+
+    validate1(datastore)
+    validate2(datastore)
 
 
 if __name__ == "__main__":
