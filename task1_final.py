@@ -10,13 +10,13 @@ import classifier as cl
 cl.init()
 
 
-def is_similar(roi1, roi2):
+def spatially_similar(roi1, roi2):
     """Returns true when two features are not the same feature, have similar Y coordinates, similar area and a similar
     height value. These are set byt the absolute Y threshhold in pixels, an area scale factor and a height scale factor.
     The default values for these have been set by experimentation"""
     Y_THRESH = 20
-    AREA_THRESH = 1.5
-    HEIGHT_THRESH = 1.2
+    AREA_THRESH = 0.5
+    HEIGHT_THRESH = 0.4
     return (abs(roi1.y - roi2.y) <= Y_THRESH) and (abs(roi1.area - roi2.area) <= max(roi1.area, roi2.area) *
             AREA_THRESH) and (abs(roi1.h - roi2.h) <= max(roi1.h, roi2.h) * HEIGHT_THRESH) and (roi1 != roi2)
 
@@ -46,7 +46,7 @@ def extracted_area(img, feat):
     return img_cropped
 
 
-def alignment_filter(rois):
+def spatial_grouping(rois):
     #  Sort by smallest area then by smallest X value
     rois.sort(key=lambda dig: dig.area)
     rois.sort(key=lambda dig: dig.x)
@@ -56,7 +56,7 @@ def alignment_filter(rois):
     for i, el in enumerate(rois):
         for j, el2 in enumerate(rois[i:]):
             for k, el3 in enumerate(rois[j:]):
-                if is_similar(el, el2) and is_similar(el, el3) and is_similar(el2, el3):
+                if spatially_similar(el, el2) and spatially_similar(el, el3) and spatially_similar(el2, el3):
                     temp.append([el, el2, el3, el.error + el2.error + el3.error])
 
     # Sort by smallest error sum of all 3 features ie index [3]
@@ -67,50 +67,70 @@ def alignment_filter(rois):
 # Take an image of a building sign and get the numbers
 def task1(img, name=None):
     if img is not None:
-        # convert to greyscale
+        # Convert to greyscale
         grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # Threshold first then invert for contouring
-        # gaus = cv2.GaussianBlur(grey, (3,3), 2)
-        thresh = cv2.adaptiveThreshold(grey, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 1)
+        # Thresholding with the adaptive thresholding method
+        thresh = cv2.adaptiveThreshold(grey, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, blockSize=21, C=1)
+        # Median blur to clump groups together
         thresh = cv2.medianBlur(thresh, 3)
+        # Invert so that the numbers are foreground and can be contoured
         invert = np.uint8(thresh * -1 + 255)
 
-        # Get contours
+        # Compute all the contours on the inverted thresholded image
         _, contours, heir = cv2.findContours(invert, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        #im4 = img.copy()
+        #cv2.drawContours(im4, contours, -1, (255, 0, 0), 1)
+        #cv2.imshow('Contour', im4)
         im3 = img.copy()
-        toplist = list()
 
+        # Allocate a list to store all of the potential digits bounding boxes and classifications in
+        digit_list = list()
+
+        # Loop over all the contours, and for those that meet the Area and Aspect Ratio requirements, classify them
         for i in contours:
-            x, y, w, h = cv2.boundingRect(i)
+            x, y, w, h = cv2.boundingRect(i)  # Get the (x,y) and width and height of a bounding box for this contour
             if 300 < w*h < 10000:
                 if 1.1*w < h < 4*w:
+                    # Save a region of interest from the greyscale image within the bounding box
                     roi = grey[y : y + h, x : x + w]
+                    # Get the classification and confidence (errors sum) for this ROI
                     classify, errors = cl.classify(roi)
+                    # Create a new Digit class that carries a neat representation of the data
                     digit = Digit(classify, np.sum(errors), x, y, w, h, w*h)
-                    toplist.append(digit)
+                    # Add the digit to the digit list that will be sorted and spatially grouped
+                    digit_list.append(digit)
 
-        # Sort by smallest error
-        toplist.sort(key=lambda x: x.error)
-        # After sorting, take the most likely (smallest error) top 10 and try to align them
-        features = alignment_filter(toplist[:min(10, len(toplist))])
+                    #cv2.putText(im3, str(classify), (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255-10*int(np.sum(errors)), 10*int(np.sum(errors))), 2)
+                    #cv2.rectangle(im3, (x, y), (x + w, y +h), (0,255-10*int(np.sum(errors)), 10*int(np.sum(errors))), 2)
 
-        # Output for visual code, doesn't identify anything here
+        #cv2.imshow('Ranked Classifications', im3)
+        #cv2.waitKey(0)
+
+        # Sort by the bets confidence first (Smallest Error)
+        digit_list.sort(key=lambda x: x.error)
+        # After sorting, take the top 10 best digits by confidence and return the best triple
+        features = spatial_grouping(digit_list[:min(10, len(digit_list))])
+
+        # Output for visual code, doesn't identify anything here. Take the 3 digits from the triplet and draw them
         for el in features[:3]:
             cv2.rectangle(im3, (el.x, el.y), (el.x + el.w, el.y + el.h), (0, 255, 0), 2)
             cv2.putText(im3, str(el.classify), (el.x, el.y - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, (120, 255, 0), 2)
 
-        # return the numbers as a string, and the Region Of Interest they were found in
+        # Return the numbers as a string, and the Region Of Interest they were found in
         return numbers(features), extracted_area(img, features)
     else:
-        # Image is none. Return an error sign
+        # Image is none. Return an error
         return "???", np.zeros((1,1))
 
 
 class Digit:
     def __init__(self, classify, error, x, y, w, h, area):
+        """This is a data storage class for a classified digit.
+            The Digit class contains a digits classification, confidence (error), x pos, y pos
+            width, height and precomputed area. """
         self.classify = classify
-        self.error = error
+        self.error = error  # Also the confidence measure
         self. x = x
         self.y = y
         self.w = w
