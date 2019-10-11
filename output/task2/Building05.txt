@@ -1,1 +1,6 @@
-Building 202 to the left; Building 212 to the left; Building 500 to the left; Building 216 to the right; Building 209 to the right; Building 210 to the right; 
+Building 202 to the left
+Building 212 to the left
+Building 500 to the left
+Building 216 to the right
+Building 209 to the right
+Building 210 to the right

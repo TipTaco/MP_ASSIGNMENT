@@ -1,1 +1,6 @@
-Building 210 to the left; Building 209 to the left; Building 208 to the left; Building 201 to the right; Building 109 to the right; Building 101 to the right; 
+Building 210 to the left
+Building 209 to the left
+Building 208 to the left
+Building 201 to the right
+Building 109 to the right
+Building 101 to the right

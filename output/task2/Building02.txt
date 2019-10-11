@@ -1,1 +1,6 @@
-Building 303 to the left; Building 305 to the left; Building 300 to the left; Building 301 to the right; Building 312 to the right; Building 309 to the right; 
+Building 303 to the left
+Building 305 to the left
+Building 300 to the left
+Building 301 to the right
+Building 312 to the right
+Building 309 to the right
