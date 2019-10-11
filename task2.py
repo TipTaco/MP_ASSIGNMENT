@@ -10,75 +10,87 @@ cl.init()
 
 
 def normalise(A):
+    """Normalsie a matrix"""
     return (A - A.min()) / (A.max() - A.min())
 
 
 def thresh_sweep(arr, step, inclusion):
+    """Sweep a threshold up from 0,0 by step until inclusion percentage of the image is included"""
+    # The range of X values before thresholding stops
     range = int(arr.shape[0] * inclusion)
     arr2 = arr.copy()
 
+    # Sweep the threshold
     for thresh in np.arange(0.0, 1.0, step):
         arr2[arr2 < thresh] = 0.0
+        # find the min and max included X values
         where = np.argwhere(arr2 == 0)
+        # Test that the range is not exceeded
         if where.shape[0] != 0 and (where.max() - where.min()) > range:
             arr2 = arr.copy()
+            # Go one step back, and reset the threshold
             arr2[arr2 < thresh - step] = 0.0
             arr2[arr2 >= thresh - step] = 1.0
             where = np.argwhere(arr2 == 0)
             arr2[where.min():where.max()] = 0.0
             break
 
+    # return the lower and upper X values
     return where.min(), where.max()
 
 
 def crop_height(img):
+    """Take a greyscale image and remove the top and bottom black bars"""
     mini = 0
     maxi = img.shape[0]
 
+    # Loop over the rows from top down, until a pixel of non zero is found
     for i, row in enumerate(img):
         if np.sum(row) > 0:
             mini = max(0, i - 1)
             break
-
+    # Loop from bottom up until a row of non-zero is found
     for i, row in enumerate(np.flip(img, axis=0)):
         if np.sum(row) > 0:
             maxi = img.shape[0] - (i - 1)
             break
-
+    # return the cropped image
     return img[max(0,mini-1):min(img.shape[0], maxi+1), :]
 
 
 def number_block(col_sum, start_point=0, reverse=False, mini=3):
+    """Segment the next block of non-zero columns from an image. Default from the left to right operation
+     block must consist of at least mini columns and starts from start_point"""
     start = 0
     stop = 0
     starting = start_point
     ending = col_sum.shape[0]
     step = 1
-
+    # If we are moving from the right hand side, reverse is true
     if reverse:
         starting = col_sum.shape[0]-1
         ending = start_point+1
         step = -1
-
+    # find the start of the block
     for i in range(starting, ending, step):
         if col_sum[i] > 0:
             start = i
             break
-
+    # Find the end of the block
     if reverse:
         starting = col_sum.shape[0]-1
         ending = start+1
     else:
         starting = start
         ending = col_sum.shape[0]
-
+    # If we have no yet exceeded the minimum number of columns included
     for i in range(starting, ending, step):
         if col_sum[i] == 0 and i - start > mini:
             stop = i
             break
         else:
             stop = i
-
+    # returning the start and stop X values depending on the operating mode
     if reverse:
         return stop, start
     else:
@@ -86,27 +98,32 @@ def number_block(col_sum, start_point=0, reverse=False, mini=3):
 
 
 def classify_digits(region, digits=None, reverse=False):
-    region = crop_height(region)
+    """Classifies all 3 digits and an arrow in a digit region"""
+    region = crop_height(region)  # Shrink the region
+    # Sum everything in columns
     col_sum = np.sum(region, axis=0)
 
     if digits is None:
         digits = region.copy()
 
+    # Section each digit based on the black columns, each start and stop is a digit.
     start1, stop1 = number_block(col_sum, 0, reverse)
     start2, stop2 = number_block(col_sum, stop1 + 1, reverse)
     start3, stop3 = number_block(col_sum, stop2 + 1, reverse)
     start4, stop4 = number_block(col_sum, stop3 + 1, reverse)
 
+    #Extract the digits from the image. Num4 is the arrow
     num1 = digits[:, start1:stop1]
     num2 = digits[:, start2:stop2]
     num3 = digits[:, start3:stop3]
     arrow = digits[:, start4:stop4]
 
+    # Crop the digits down vertically
     num1 = crop_height(num1)
     num2 = crop_height(num2)
     num3 = crop_height(num3)
     arrow = crop_height(arrow)
-
+    # Return the classification ID's for each of the regions.
     return cl.classify(num1)[0], cl.classify(num2)[0], cl.classify(num3)[0], cl.classify(arrow)[0]
 
 
@@ -114,6 +131,9 @@ def crop_sign(img_rgb, img_grey, digit_regions):
     """Combined function that takes an ordered list of digit regions and crops and perspective transforms the
      image so that the top two corners of the first region and the bottom two corners of the last region are the
      extents of a newly created rectangular image."""
+    # Methodolgy inspired by 4 Point OpenCV getPerspective Transform Example:
+    #  REF: https://www.pyimagesearch.com/2014/08/25/4-point-opencv-getperspective-transform-example/
+
     # Make region of interest to save (straight)
     treg = digit_regions[0]  # Top of sign Region
     breg = digit_regions[-1]  # Bottom of sign region (the last element in the list)
@@ -168,21 +188,13 @@ def task2(img, name=None):
         # Get the Lower and Upper X coordinates where an approximation of the sign lies
         minX, maxX = thresh_sweep(col_sum, 0.001, 0.22)
 
-        #plt.plot(np.arange(0, img.shape[1]), col_sum)
-        #plt.xlabel("X Coordinate")
-        #plt.ylabel("Normalised Sum of Gradients of Column")
-        #plt.show()
-
         # Extract a working area that is a little wider than the sign's best match area, ensuring valid bounds
         roi = grey[:, max(0, int(minX*0.9)):min(grey.shape[1], int(maxX*1.1))]
         roi_rgb = img[:, max(0, int(minX*0.9)):min(grey.shape[1], int(maxX*1.1))]
-        cv2.imshow('roi', roi)
 
         # Adaptive threshold the macro ROI and then apply contouring
         roi_thresh = cv2.adaptiveThreshold(roi, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 25, 1)
         _, contours, heir = cv2.findContours(roi_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-        cv2.imshow('thresh', roi_thresh)
 
         # First pass classification to find the ARROWS on the sign only. This step is to align the sign
         digit_regions = list()
@@ -211,12 +223,9 @@ def task2(img, name=None):
 
         # Sort the list by the Y Coordinate
         digit_regions.sort(key=lambda dr: dr.ry)
-        #cv2.imshow('Bounded arrows', roi_rgb)
 
         # Crop the sign down to only include the arrows and numbers
         region_output, cropped = crop_sign(roi_rgb, roi, digit_regions)
-
-        cv2.imshow('warped', cropped)
 
         # Upscale the image by 2 times and adaptive threshold it.
         cropped = cv2.resize(cropped, (cropped.shape[1] * 2, cropped.shape[0] * 2), cv2.INTER_LINEAR)
@@ -250,8 +259,6 @@ def task2(img, name=None):
                 else:
                     cv2.rectangle(warped_rgb, (x, y), (x+w, y+h), (255, 0, 0), thickness=1)
 
-        cv2.imshow('warped rgn', warped_rgb)
-
         # Order the List by ascending region Y coordinate
         digit_regions.sort(key=lambda dr: dr.ry)
 
@@ -265,46 +272,50 @@ def task2(img, name=None):
             digits = cv2.threshold(digits, 120, 255, cv2.THRESH_OTSU)[1]
 
             width = int(dr.w * 1.2)
+            # Noise reduction matches. Find the best image classification from left hand side inward
             bests = list()
             for sweep in range(0, width//2):
                 part = digits[:, sweep:width]
                 part = crop_height(part)
-                cv2.imshow('part', part)
+                #cv2.imshow('part', part)
                 classify, errors = cl.classify(part)
                 bests.append([classify, np.sum(errors*errors), sweep])
 
             # sort the best matches by their lowest distance classification
             bests.sort(key=lambda x: x[1])
 
-            cv2.imshow('digits before', digits)
+            # get the coordinate of the best digit, and crop the digit region
             digits = digits[:, int(bests[0][2]):]
-            cv2.imshow('digits after', digits)
 
             # first try left to right full height classification
             num1, num2, num3, num4 = classify_digits(digits)
+
+            # Multiple attempts if for some reason the numebrs returned were illogical. E.g. an arrow where a digit is
             if not validate_classify(num1, num2, num3, num4):
+                # Try only the top 70% of the digits image, all digits still form blocks here
                 num1, num2, num3, num4 = classify_digits(digits[:int(digits.shape[0]*0.70), :], digits)
 
-            if not validate_classify(num1, num2, num3, num4):
-                num1, num2, num3, num4 = classify_digits(digits, reverse=True)
+            #if not validate_classify(num1, num2, num3, num4):
+                # Try the full image in back to front order
+                #num1, num2, num3, num4 = classify_digits(digits, reverse=True)
 
-            if not validate_classify(num1, num2, num3, num4):
-                num1, num2, num3, num4 = classify_digits(digits[:int(digits.shape[0] * 0.70), :], digits, reverse=True)
+            #if not validate_classify(num1, num2, num3, num4):
+                #num1, num2, num3, num4 = classify_digits(digits[:int(digits.shape[0] * 0.70), :], digits, reverse=True)
 
-            output = ""
-            output += str(num1)
-            output += str(num2)
-            output += str(num3)
+            # Save the output string of numbers
+            output = str(num1) + str(num2) + str(num3)
 
             dir = num4
+            # If the direction is Left
             if dir == 10:
                 output += "L"
-            elif dir == 11:
+            elif dir == 11:  # if it is right
                 output += "R"
 
-            # print(output)
+            # Add the numbers to the list of directions on this sign
             numbers_on_sign.append(output)
 
+        # return the numbers on the sign as a list and as a region
         return np.array(numbers_on_sign), region_output
     else:
         # Not a valid image, return error

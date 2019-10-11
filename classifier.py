@@ -42,6 +42,7 @@ kNN = cv2.ml.KNearest_create()
 
 
 def init(show_test=False):
+    """Initialise, load training files"""
     if not (pth.exists(TRAIN_SET) and pth.exists(TRAIN_LABELS) and pth.exists(TEST_SET) and pth.exists(TEST_LABELS)):
         # one or more of the needed files for the kNN model are missing, recreate and save them
         train()
@@ -62,6 +63,7 @@ def init(show_test=False):
 
 
 def train():
+    """ Perform Knn digit set building and calculation of HOG features"""
     training_aug = list()
     # Initiate the array to have a List willing to accept each of the Augmented images as pixels
     for i in range(len(NUMBERS) + 1):
@@ -96,14 +98,19 @@ def train():
 
 
 def classify(img):
+    """ Given a greyscale image img, return a classification ID and sum of errors (confidence)"""
+
     if img.shape[0] > 0 and img.shape[1] > 0:
         border = 2
         method = cv2.INTER_AREA
-        if img.shape[0] < 40 or img.shape[1] < 28:
+
+        # Decide if the image is upscaled or downscaled, and then select an interpolation method
+        if img.shape[0] < 40 or img.shape[1] < 28:  # Upscale
             method = cv2.INTER_CUBIC
 
         # Resize the image to (28, 40) with the content scaled to (22, 34) and a black border of 2
         img_resize = cv2.resize(img, (FEAT_WIDTH - border * 2, FEAT_HEIGHT - border * 2), interpolation=method)
+        # Add a border width 2 of black
         img_resize = cv2.copyMakeBorder(img_resize, border, border, border, border, cv2.BORDER_CONSTANT)
         vect = hog(img_resize).reshape(1, HOG_FEATURES)
         _, result, _, dist = kNN.findNearest(vect, k=K)
@@ -118,23 +125,31 @@ def hog(img):
 
 
 def training_hog(master):
+    """Build a set of training features and labels"""
     return subset_hog(0, FEATURES, TRAIN_FEATURES, master)
 
 
 def test_hog(master):
+    """Build a set of test features and labels"""
     return subset_hog(TRAIN_FEATURES, FEATURES, TEST_FEATURES, master)
 
 
 def subset_hog(low, digits, samples=100, master_set=None):
+    """Subset the augmented training digits"""
     set = np.zeros((samples * digits, HOG_FEATURES), dtype=np.float32)
     set_labels = np.zeros((samples * digits), dtype=int)
     matrixAug = np.array(master_set)
 
+    # Loop over each type of digit, and get enough samples from each
     for i in range(digits):
         for j in range(samples):
+            # Copy the greyscale
             im = matrixAug[i][low + j]
+            # Perform HOG
             hh = hog(im)
+            # reshape to 1x324
             set[i * samples + j] = hh.reshape(HOG_FEATURES)
+            # Save the HOG
             set_labels[i * samples + j] = int(i)
 
     return set, set_labels
