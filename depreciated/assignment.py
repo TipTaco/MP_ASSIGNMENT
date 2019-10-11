@@ -4,7 +4,7 @@
 # Prepared for Machine Perception Assignment
 # assignmnet.py - the main file for the assignment with calls to both task one and two
 import cv2
-import imageloader as il
+from depreciated import imageloader as il
 import numpy as np
 il.init()
 

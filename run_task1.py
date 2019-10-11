@@ -7,7 +7,7 @@
 # REQUIRES OUTPUT: DetectedAreaX.jpg and BuildingX.txt
 
 import cv2
-import task1_final as task1
+import task1 as task1
 import os
 from os import listdir
 
@@ -32,7 +32,7 @@ def main():
                 f.write("Building " + num + "\n")
                 f.close()
 
-    print("Compelete")
+    print("Complete")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,6 @@ from os import path as pth
 # Running environment variables
 IMG_PATH = '/res/'
 TRAIN_VAR_PATH = '/res/training/augmented'
-TRAIN_PATH = '/res/training/original'
 
 TRAIN_SET = 'model/training.npy'
 TRAIN_LABELS = 'model/training_labels.npy'

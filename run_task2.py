@@ -2,7 +2,7 @@
 # Purpose of this file is to complete the task 1 as per the assignmnet spec sheet
 # It also assumes that the directories exist
 
-# READ ALL FILES FROM /home/student/test/task1/
+# READ ALL FILES FROM /home/student/test/task2/
 # FILE NAMES ARE: testX.jpg
 # REQUIRES OUTPUT: DetectedAreaX.jpg and BuildingX.txt
 
@@ -35,10 +35,10 @@ def main():
                     directional = "left"
                     if direct == 'R':
                         directional = "right"
-                    f.write("Building " + actual_num + " to the " + directional + "; ")
+                    f.write("Building " + actual_num + " to the " + directional + "\n")
                 f.close()
 
-    print("Compelete")
+    print("Complete")
 
 
 if __name__ == "__main__":

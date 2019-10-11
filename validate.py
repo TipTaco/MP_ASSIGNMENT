@@ -1,7 +1,7 @@
 # Author Adrian Shedley, date 4 oct 2019
 import json
 import cv2
-import task1_final as task1
+import task1 as task1
 import task2
 
 
